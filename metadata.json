@@ -1,0 +1,5 @@
+{
+  "name": "Interval Workout Timer",
+  "description": "A professional-grade interval timer for workouts with support for multiple sequential blocks and transitions.",
+  "requestFramePermissions": []
+}
