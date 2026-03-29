@@ -702,6 +702,7 @@ function TimeInput({ label, value, onChange, color, isReps }: TimeInputProps) {
           {isEditing ? (
             <input 
               autoFocus
+              type="number"
               value={tempValue}
               onChange={(e) => setTempValue(e.target.value)}
               onBlur={handleBlur}
