@@ -78,7 +78,7 @@ export default function App() {
   const [showPresets, setShowPresets] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
-  const [soundVolume, setSoundVolume] = useState<number>(0.1);
+  const [soundVolume, setSoundVolume] = useState<number>(0.3);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   
   const [state, setState] = useState<TimerState>(() => {
@@ -130,7 +130,7 @@ export default function App() {
       const ctx = audioContextRef.current;
       if (ctx.state === 'suspended') ctx.resume();
       
-      const playTone = (freq: number, start: number, duration: number, volume = 0.1) => {
+      const playTone = (freq: number, start: number, duration: number, volume = 0.3) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -164,7 +164,7 @@ export default function App() {
     } catch (e) {
       console.error('Audio error:', e);
     }
-  }, []);
+  }, [soundVolume]);
 
   // --- Timer Logic ---
   const nextPhase = useCallback(() => {
@@ -419,13 +419,14 @@ export default function App() {
 
   const getSoundVolumeLabel = (volume: number) => {
     if (volume === 0) return 'Выключено';
-    if (volume === 0.1) return 'Нормальный';
-    if (volume === 0.2) return 'Громкий';
+    if (volume === 0.15) return 'Тихий';
+    if (volume === 0.3) return 'Нормальный';
+    if (volume === 0.6) return 'Громкий';
     return '';
   };
 
   const cycleSoundVolume = () => {
-    const volumes = [0.1, 0.2, 0];
+    const volumes = [0.15, 0.3, 0.6, 0];
     const currentIndex = volumes.indexOf(soundVolume);
     const nextVolume = volumes[(currentIndex + 1) % volumes.length];
     setSoundVolume(nextVolume);
