@@ -234,6 +234,11 @@ export default function App() {
   }, [blocks, transitionTime, playBeep]);
 
   useEffect(() => {
+    // Trigger vibration on start
+    triggerVibration(100);
+  }, []);
+
+  useEffect(() => {
     if (state.isActive && state.timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setState(prev => {
@@ -466,140 +471,104 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans overflow-x-hidden">
-      {/* Presets Slide-down */}
-      <AnimatePresence>
-        {showPresets && (
-          <motion.div 
-            initial={{ y: '-100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '-100%' }}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl p-8 overflow-y-auto"
-          >
-            <div className="max-w-md mx-auto">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold italic uppercase tracking-tighter">Пресеты</h2>
-                <button onClick={() => setShowPresets(false)} className="p-2 bg-white/10 rounded-full">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                {presets.length === 0 && (
-                  <p className="text-white/30 text-center py-12">Нет сохраненных пресетов</p>
-                )}
-                {presets.map(p => (
-                  <div 
-                    key={p.id} 
-                    onClick={() => loadPreset(p)}
-                    className="bg-white/5 border border-white/10 p-5 rounded-3xl flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-colors"
-                  >
-                    <div>
-                      <h3 className="font-bold text-lg">{p.name}</h3>
-                      <p className="text-xs text-white/40">{p.blocks.length} блоков • {p.blocks.reduce((acc, b) => acc + b.reps, 0)} повторов</p>
-                    </div>
-                    <button 
-                      onClick={(e) => deletePreset(p.id, e)}
-                      className="p-2 text-white/20 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Save Preset Modal */}
-      <AnimatePresence>
-        {showSaveModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
-          >
+    <div className="app">
+      <h1>Interval Workout Timer</h1>
+      <p style={{ color: 'red', fontWeight: 'bold' }}>Вибрация тест</p>
+      <p>Current Action: {currentAction}</p>
+      <div className="actions">
+        <button onClick={() => handleActionChange('work')}>Work</button>
+        <button onClick={() => handleActionChange('rest')}>Rest</button>
+        <button onClick={() => handleActionChange('pause')}>Pause</button>
+      </div>
+      <div className="max-w-md mx-auto px-6 py-8 flex flex-col min-h-screen">
+        {/* Presets Slide-down */}
+        <AnimatePresence>
+          {showPresets && (
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#111] border border-white/10 p-8 rounded-[40px] w-full max-w-sm shadow-2xl"
+              initial={{ y: '-100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '-100%' }}
+              className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl p-8 overflow-y-auto"
             >
-              <h3 className="text-xl font-bold italic uppercase tracking-tight mb-6">Сохранить пресет</h3>
-              <input 
-                autoFocus
-                value={newPresetName}
-                onChange={(e) => setNewPresetName(e.target.value)}
-                placeholder="Название тренировки"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 mb-8 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
-                onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
-              />
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => setShowSaveModal(false)}
-                  className="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-sm tracking-widest uppercase text-white/40 hover:bg-white/10 transition-colors"
-                >
-                  Отмена
-                </button>
-                <button 
-                  onClick={handleSavePreset}
-                  className="flex-1 py-4 rounded-2xl bg-white text-black font-bold text-sm tracking-widest uppercase hover:bg-white/90 transition-colors"
-                >
-                  Сохранить
-                </button>
+              <div className="max-w-md mx-auto">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-bold italic uppercase tracking-tighter">Пресеты</h2>
+                  <button onClick={() => setShowPresets(false)} className="p-2 bg-white/10 rounded-full">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {presets.length === 0 && (
+                    <p className="text-white/30 text-center py-12">Нет сохраненных пресетов</p>
+                  )}
+                  {presets.map(p => (
+                    <div 
+                      key={p.id} 
+                      onClick={() => loadPreset(p)}
+                      className="bg-white/5 border border-white/10 p-5 rounded-3xl flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-colors"
+                    >
+                      <div>
+                        <h3 className="font-bold text-lg">{p.name}</h3>
+                        <p className="text-xs text-white/40">{p.blocks.length} блоков • {p.blocks.reduce((acc, b) => acc + b.reps, 0)} повторов</p>
+                      </div>
+                      <button 
+                        onClick={(e) => deletePreset(p.id, e)}
+                        className="p-2 text-white/20 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <div className="max-w-md mx-auto px-6 py-8 flex flex-col min-h-screen">
-        {/* Top Bar */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setShowPresets(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition-colors"
+        {/* Save Preset Modal */}
+        <AnimatePresence>
+          {showSaveModal && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
             >
-              <Settings2 className="w-4 h-4" /> Пресеты
-            </button>
-            <button 
-              onClick={savePreset}
-              className="p-2 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors"
-              title="Сохранить пресет"
-            >
-              <Save className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={cycleSoundVolume}
-              className="p-2 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors group relative"
-              title={`Звук: ${getSoundVolumeLabel(soundVolume)}`}
-            >
-              {soundVolume === 0 && <VolumeX className="w-5 h-5 opacity-50" />}
-              {soundVolume === 0.1 && <Volume className="w-5 h-5" />}
-              {soundVolume === 0.2 && <Volume2 className="w-5 h-5" />}
-              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] bg-white/10 px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                {getSoundVolumeLabel(soundVolume)}
-              </span>
-            </button>
-            <button 
-              onClick={() => {
-                setVibrationEnabled(!vibrationEnabled);
-                if (!vibrationEnabled) triggerVibration(100);
-              }}
-              className="p-2 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors"
-              title={vibrationEnabled ? "Отключить вибрацию" : "Включить вибрацию"}
-            >
-              <Vibrate className={`w-5 h-5 ${vibrationEnabled ? '' : 'opacity-40'}`} />
-            </button>
-          </div>
-        </div>
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[#111] border border-white/10 p-8 rounded-[40px] w-full max-w-sm shadow-2xl"
+              >
+                <h3 className="text-xl font-bold italic uppercase tracking-tight mb-6">Сохранить пресет</h3>
+                <input 
+                  autoFocus
+                  value={newPresetName}
+                  onChange={(e) => setNewPresetName(e.target.value)}
+                  placeholder="Название тренировки"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 mb-8 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                />
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setShowSaveModal(false)}
+                    className="flex-1 py-4 rounded-2xl bg-white/5 font-bold text-sm tracking-widest uppercase text-white/40 hover:bg-white/10 transition-colors"
+                  >
+                    Отмена
+                  </button>
+                  <button 
+                    onClick={handleSavePreset}
+                    className="flex-1 py-4 rounded-2xl bg-white text-black font-bold text-sm tracking-widest uppercase hover:bg-white/90 transition-colors"
+                  >
+                    Сохранить
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Circular Timer Section */}
         <div className="flex flex-col items-center justify-center py-8">
           <div className="relative w-80 h-80 flex items-center justify-center">
             {/* Background Rings */}
