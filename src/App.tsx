@@ -181,8 +181,6 @@ export default function App() {
       if (prev.currentPhase === 'WORK') {
         if (prev.currentRep < currentBlock.reps) {
           playBeep('REST');
-          // Double vibration on transition to REST (pause of a block)
-          triggerVibration([100, 50, 100]);
           return { 
             ...prev, 
             currentPhase: 'REST', 
@@ -192,8 +190,6 @@ export default function App() {
         } else {
           if (prev.currentBlockIndex < blocks.length - 1) {
             playBeep('TRANSITION');
-            // Single vibration on transition between blocks
-            triggerVibration(50);
             return { 
               ...prev, 
               currentPhase: 'TRANSITION', 
@@ -202,8 +198,6 @@ export default function App() {
             };
           } else {
             playBeep('FINISH');
-            // Long double vibration at the end
-            triggerVibration([200, 100, 200]);
             return { ...prev, isActive: false, isFinished: true };
           }
         }
@@ -212,8 +206,6 @@ export default function App() {
       // If we were resting
       if (prev.currentPhase === 'REST') {
         playBeep('WORK');
-        // Single vibration on transition to WORK
-        triggerVibration(50);
         return { 
           ...prev, 
           currentPhase: 'WORK', 
@@ -226,8 +218,6 @@ export default function App() {
       // If we were in transition
       if (prev.currentPhase === 'TRANSITION') {
         playBeep('WORK');
-        // Single vibration on start of next block
-        triggerVibration(50);
         const nextBlock = blocks[prev.currentBlockIndex + 1];
         return { 
           ...prev, 
@@ -241,7 +231,7 @@ export default function App() {
 
       return prev;
     });
-  }, [blocks, transitionTime, playBeep, triggerVibration]);
+  }, [blocks, transitionTime, playBeep]);
 
   useEffect(() => {
     if (state.isActive && state.timeLeft > 0) {
@@ -283,6 +273,29 @@ export default function App() {
       }
     }
   }, [blocks, transitionTime, state.isActive, state.isFinished, state.currentBlockIndex, state.currentPhase, state.totalTimeInPhase, state.timeLeft]);
+
+  // Vibration on phase changes
+  const prevPhaseRef = useRef<Phase | null>(null);
+  useEffect(() => {
+    if (prevPhaseRef.current && prevPhaseRef.current !== state.currentPhase) {
+      const phase = state.currentPhase;
+      if (phase === 'REST') {
+        // Double vibration on transition to REST (pause of a block)
+        triggerVibration([100, 50, 100]);
+      } else if (phase === 'WORK') {
+        // Single vibration on transition to WORK
+        triggerVibration(50);
+      } else if (phase === 'TRANSITION') {
+        // Single vibration on transition between blocks
+        triggerVibration(50);
+      }
+    }
+    if (state.isFinished && prevPhaseRef.current !== 'FINISH') {
+      // Long double vibration at the end
+      triggerVibration([200, 100, 200]);
+    }
+    prevPhaseRef.current = state.currentPhase;
+  }, [state.currentPhase, state.isFinished, triggerVibration]);
 
   // --- Calculations ---
   const totalWorkoutTime = useMemo(() => {
