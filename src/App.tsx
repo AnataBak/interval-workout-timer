@@ -18,7 +18,11 @@ import {
   X,
   Minus,
   Check,
-  SkipForward
+  SkipForward,
+  Volume,
+  Volume2,
+  VolumeX,
+  Vibrate
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TimerBlock, TimerState, Phase, WorkoutPreset } from './types';
@@ -32,23 +36,50 @@ const INITIAL_BLOCK = (): TimerBlock => ({
 });
 
 const STORAGE_KEY = 'interval_timer_presets';
+const CURRENT_CONFIG_KEY = 'interval_timer_current_config';
 
 export default function App() {
   // --- State ---
-  const [blocks, setBlocks] = useState<TimerBlock[]>(() => [
-    {
-      id: crypto.randomUUID(),
-      name: 'Блок 1',
-      workTime: 30,
-      restTime: 10,
-      reps: 3,
+  const [blocks, setBlocks] = useState<TimerBlock[]>(() => {
+    const saved = localStorage.getItem(CURRENT_CONFIG_KEY);
+    if (saved) {
+      try {
+        const config = JSON.parse(saved);
+        if (config.blocks && Array.isArray(config.blocks)) {
+          return config.blocks;
+        }
+      } catch (e) {
+        console.error('Failed to load blocks config', e);
+      }
     }
-  ]);
-  const [transitionTime, setTransitionTime] = useState(15);
+    return [
+      {
+        id: crypto.randomUUID(),
+        name: 'Блок 1',
+        workTime: 30,
+        restTime: 10,
+        reps: 3,
+      }
+    ];
+  });
+  const [transitionTime, setTransitionTime] = useState(() => {
+    const saved = localStorage.getItem(CURRENT_CONFIG_KEY);
+    if (saved) {
+      try {
+        const config = JSON.parse(saved);
+        return config.transitionTime ?? 15;
+      } catch (e) {
+        console.error('Failed to load transition time', e);
+      }
+    }
+    return 15;
+  });
   const [presets, setPresets] = useState<WorkoutPreset[]>([]);
   const [showPresets, setShowPresets] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
+  const [soundVolume, setSoundVolume] = useState<number>(0.1);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   
   const [state, setState] = useState<TimerState>(() => {
     const initialWorkTime = 30;
@@ -82,8 +113,16 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
   }, [presets]);
 
+  // Save current configuration (blocks and transition time) whenever they change
+  useEffect(() => {
+    const config = { blocks, transitionTime };
+    localStorage.setItem(CURRENT_CONFIG_KEY, JSON.stringify(config));
+  }, [blocks, transitionTime]);
+
   // --- Audio ---
   const playBeep = useCallback((type: 'WORK' | 'REST' | 'TRANSITION' | 'FINISH') => {
+    if (soundVolume === 0) return;
+    
     try {
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -96,8 +135,8 @@ export default function App() {
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(volume, start);
-        gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+        gain.gain.setValueAtTime(volume * soundVolume, start);
+        gain.gain.exponentialRampToValueAtTime(0.01 * soundVolume, start + duration);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(start);
@@ -372,6 +411,27 @@ export default function App() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const triggerVibration = (pattern: number | number[] = 100) => {
+    if (vibrationEnabled && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  };
+
+  const getSoundVolumeLabel = (volume: number) => {
+    if (volume === 0) return 'Выключено';
+    if (volume === 0.1) return 'Нормальный';
+    if (volume === 0.2) return 'Громкий';
+    return '';
+  };
+
+  const cycleSoundVolume = () => {
+    const volumes = [0.1, 0.2, 0];
+    const currentIndex = volumes.indexOf(soundVolume);
+    const nextVolume = volumes[(currentIndex + 1) % volumes.length];
+    setSoundVolume(nextVolume);
+    triggerVibration(50);
+  };
+
   const getPhaseLabel = (phase: Phase) => {
     switch (phase) {
       case 'WORK': return 'РАБОТА';
@@ -474,18 +534,45 @@ export default function App() {
       <div className="max-w-md mx-auto px-6 py-8 flex flex-col min-h-screen">
         {/* Top Bar */}
         <div className="flex items-center justify-between mb-8">
-          <button 
-            onClick={() => setShowPresets(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-xs font-bold tracking-widest uppercase"
-          >
-            <Settings2 className="w-4 h-4" /> Пресеты
-          </button>
-          <button 
-            onClick={savePreset}
-            className="p-2 bg-white/5 rounded-full border border-white/10"
-          >
-            <Save className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowPresets(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition-colors"
+            >
+              <Settings2 className="w-4 h-4" /> Пресеты
+            </button>
+            <button 
+              onClick={savePreset}
+              className="p-2 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors"
+              title="Сохранить пресет"
+            >
+              <Save className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={cycleSoundVolume}
+              className="p-2 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors group relative"
+              title={`Звук: ${getSoundVolumeLabel(soundVolume)}`}
+            >
+              {soundVolume === 0 && <VolumeX className="w-5 h-5 opacity-50" />}
+              {soundVolume === 0.1 && <Volume className="w-5 h-5" />}
+              {soundVolume === 0.2 && <Volume2 className="w-5 h-5" />}
+              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] bg-white/10 px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {getSoundVolumeLabel(soundVolume)}
+              </span>
+            </button>
+            <button 
+              onClick={() => {
+                setVibrationEnabled(!vibrationEnabled);
+                if (!vibrationEnabled) triggerVibration(100);
+              }}
+              className="p-2 bg-white/5 rounded-full border border-white/10 hover:bg-white/10 transition-colors"
+              title={vibrationEnabled ? "Отключить вибрацию" : "Включить вибрацию"}
+            >
+              <Vibrate className={`w-5 h-5 ${vibrationEnabled ? '' : 'opacity-40'}`} />
+            </button>
+          </div>
         </div>
 
         {/* Circular Timer Section */}
